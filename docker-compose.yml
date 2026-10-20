@@ -1,0 +1,10 @@
+services:
+  vuminhduc:
+    build:
+      context: .
+      dockerfile: VuMinhDuc/Dockerfile
+    ports:
+      - "8687:8687"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8687
