@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using VuMinhDuc.Models;
+
 namespace VuMinhDuc
 {
     public class Program
@@ -8,6 +11,11 @@ namespace VuMinhDuc
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+
+            // Đăng ký ApplicationDbContext kết nối Supabase PostgreSQL
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(connectionString));
 
             var app = builder.Build();
 
