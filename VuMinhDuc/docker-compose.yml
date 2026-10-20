@@ -2,7 +2,7 @@ services:
   vuminhduc:
     build:
       context: .
-      dockerfile: VuMinhDuc/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8687:8687"
     environment:
