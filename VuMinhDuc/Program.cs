@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.StaticFiles;
 using System.Text;
 using VuMinhDuc.Models;
 using VuMinhDuc.Repository;
@@ -146,10 +147,43 @@ namespace VuMinhDuc
                 app.UseHsts();
             }
 
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
-            app.UseRouting();
+            // Bật CORS cho toàn bộ request bao gồm cả static file font/icon
             app.UseCors("AllowAll");
+
+            // Cấu hình MIME types đầy đủ cho static files (Fonts, Wasm, Assets) khi Deploy
+            var provider = new FileExtensionContentTypeProvider();
+            provider.Mappings[".otf"] = "font/otf";
+            provider.Mappings[".ttf"] = "font/ttf";
+            provider.Mappings[".woff"] = "font/woff";
+            provider.Mappings[".woff2"] = "font/woff2";
+            provider.Mappings[".wasm"] = "application/wasm";
+            provider.Mappings[".bin"] = "application/octet-stream";
+            provider.Mappings[".symbols"] = "application/octet-stream";
+            provider.Mappings[".frag"] = "text/plain";
+            provider.Mappings[".json"] = "application/json";
+
+            app.UseDefaultFiles();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                ContentTypeProvider = provider,
+                OnPrepareResponse = ctx =>
+                {
+                    // Thiết lập header Public và CORS để toàn bộ icon/font hiển thị 100% khi Deploy
+                    ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                    ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+                    ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+
+                    var fileName = ctx.File.Name.ToLower();
+                    if (fileName.EndsWith(".otf") || fileName.EndsWith(".ttf") || fileName.EndsWith(".woff") ||
+                        fileName.EndsWith(".woff2") || fileName.EndsWith(".wasm") || fileName.EndsWith(".png") ||
+                        fileName.EndsWith(".svg") || fileName.EndsWith(".ico"))
+                    {
+                        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                    }
+                }
+            });
+
+            app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
