@@ -33,6 +33,17 @@
   <link rel="manifest" href="manifest.json">
 
   <!-- Public Material Icons fonts for 100% web deployment compatibility -->
+  <link rel="preload" href="assets/fonts/MaterialIcons-Regular.otf" as="font" type="font/otf" crossorigin>
+  <style>
+    @font-face {
+      font-family: 'MaterialIcons';
+      font-style: normal;
+      font-weight: 400;
+      src: url('assets/fonts/MaterialIcons-Regular.otf') format('opentype'),
+           url('fonts/MaterialIcons-Regular.otf') format('opentype');
+      font-display: block;
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Material+Icons&display=swap" rel="stylesheet">
