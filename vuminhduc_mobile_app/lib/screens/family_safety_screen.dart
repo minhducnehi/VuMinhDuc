@@ -121,7 +121,7 @@ class _FamilySafetyScreenState extends State<FamilySafetyScreen> with SingleTick
   bool get isOwner =>
       widget.role.toLowerCase() == 'owner' ||
       widget.role.toLowerCase() == 'admin' ||
-      widget.username.toLowerCase() == (_group['ownerId']?.toString().toLowerCase() ?? 'duc');
+      widget.username.toLowerCase() == (_group['ownerId']?.toString().toLowerCase() ?? 'hihi');
   bool get isChildOrMember => !isOwner;
   bool get isChild => !isOwner;
   bool get isMember => !isOwner && widget.role.toLowerCase() == 'member';
@@ -2642,7 +2642,7 @@ class _FamilySafetyScreenState extends State<FamilySafetyScreen> with SingleTick
   // ==============================================================
   List<Map<String, dynamic>> _getUnifiedFamilyMembers() {
     final Map<String, Map<String, dynamic>> memberMap = {};
-    final String ownerName = (_group['ownerId'] ?? 'duc').toString().trim();
+    final String ownerName = (_group['ownerId'] ?? 'hihi').toString().trim();
     final String currentUname = widget.username.trim();
 
     // 1. Nạp từ _members (chứa toàn bộ tài khoản người dùng từ server)
@@ -4345,7 +4345,7 @@ class _FamilySafetyScreenState extends State<FamilySafetyScreen> with SingleTick
                               final childLoc = _locations.firstWhere(
                                 (l) => l['username'] == alert['username'],
                                 orElse: () => {
-                                  'username': alert['username'] ?? 'duc',
+                                  'username': alert['username'] ?? 'thanh_vien',
                                   'latitude': 10.846939,
                                   'longitude': 106.775958,
                                   'addressName': 'Khu Công Nghệ Cao, TP. Thủ Đức, TP.HCM',
@@ -5207,11 +5207,11 @@ class _FamilySafetyScreenState extends State<FamilySafetyScreen> with SingleTick
   void _showEmergencyCallDialog() {
     final ownerMember = _members.firstWhere(
       (m) =>
-          (m['role']?.toString().toLowerCase() == 'owner' || m['username'] == 'duc') &&
+          (m['role']?.toString().toLowerCase() == 'owner' || m['role']?.toString().toLowerCase() == 'admin') &&
           (m['phoneNumber']?.toString().isNotEmpty ?? false),
-      orElse: () => {'phoneNumber': '0978282049', 'username': 'Ba Mẹ (Đức)'},
+      orElse: () => {'phoneNumber': '0987654321', 'username': 'Ba Mẹ (hihi)'},
     );
-    final phone = ownerMember['phoneNumber']?.toString() ?? '0978282049';
+    final phone = ownerMember['phoneNumber']?.toString() ?? '0987654321';
 
     showDialog(
       context: context,
@@ -8127,15 +8127,6 @@ class _FamilySafetyScreenState extends State<FamilySafetyScreen> with SingleTick
         }
         c['isDeviceLocked'] = loc['isDeviceLocked'] == true;
       }
-    }
-
-    if (childMembers.isEmpty && widget.username != 'duc') {
-      childMembers.add({
-        'username': 'duc',
-        'role': 'Child',
-        'isDeviceLocked': false,
-        'addressName': 'Khu Công Nghệ Cao, TP. Thủ Đức, TP. Hồ Chí Minh',
-      });
     }
 
     return SingleChildScrollView(

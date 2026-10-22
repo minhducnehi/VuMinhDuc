@@ -51,7 +51,7 @@ namespace VuMinhDuc.Controllers
                 group = new FamilyGroup
                 {
                     Name = "Không Gian Gia Đình Đức Minh",
-                    OwnerId = username ?? "duc",
+                    OwnerId = username ?? "hihi",
                     InviteCode = "FAM-" + new Random().Next(100000, 999999).ToString()
                 };
                 _context.FamilyGroups.Add(group);
@@ -372,6 +372,131 @@ namespace VuMinhDuc.Controllers
                 username = memberUser.UserName,
                 role = newRole,
                 ownerCount = updatedOwnerCount
+            });
+        }
+
+        /// <summary>
+        /// Xóa hoàn toàn một thành viên và toàn bộ dữ liệu liên quan (vị trí, lộ trình, cảnh báo, thiết bị, rules, schedules...)
+        /// </summary>
+        [HttpDelete("delete-member/{username}")]
+        [HttpPost("delete-member/{username}")]
+        public async Task<IActionResult> DeleteMemberAndAllData(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return BadRequest(new { status = false, message = "Vui lòng chỉ định tên tài khoản cần xóa" });
+
+            string targetName = username.Trim();
+            string norm = targetName.ToLower();
+
+            var user = await _userManager.FindByNameAsync(targetName);
+            string userId = user?.Id ?? targetName;
+
+            var deletedItems = new Dictionary<string, int>();
+
+            // 1. Lịch sử vị trí
+            var hist = await _context.MemberLocationHistories
+                .Where(h => h.Username != null && h.Username.ToLower() == norm)
+                .ToListAsync();
+            deletedItems["Lịch sử lộ trình"] = hist.Count;
+            _context.MemberLocationHistories.RemoveRange(hist);
+
+            // 2. Vị trí tức thời
+            var locs = await _context.MemberLocations
+                .Where(l => (l.Username != null && l.Username.ToLower() == norm) || l.UserId == userId)
+                .ToListAsync();
+            deletedItems["Vị trí tức thời"] = locs.Count;
+            _context.MemberLocations.RemoveRange(locs);
+
+            // 3. Cảnh báo an toàn & SOS
+            var alerts = await _context.SafetyAlerts
+                .Where(a => (a.Username != null && a.Username.ToLower() == norm) || a.UserId == userId)
+                .ToListAsync();
+            deletedItems["Cảnh báo an toàn"] = alerts.Count;
+            _context.SafetyAlerts.RemoveRange(alerts);
+
+            // 4. Yêu cầu của trẻ em
+            var reqs = await _context.ChildRequests
+                .Where(r => (r.ChildUsername != null && r.ChildUsername.ToLower() == norm) || r.ChildId == userId || (r.ApprovedBy != null && r.ApprovedBy.ToLower() == norm))
+                .ToListAsync();
+            deletedItems["Yêu cầu trẻ em"] = reqs.Count;
+            _context.ChildRequests.RemoveRange(reqs);
+
+            // 5. Thiết bị liên kết
+            var devices = await _context.ChildDevices
+                .Where(d => (d.ChildUsername != null && d.ChildUsername.ToLower() == norm) || (d.ParentUsername != null && d.ParentUsername.ToLower() == norm))
+                .ToListAsync();
+            deletedItems["Thiết bị liên kết"] = devices.Count;
+            _context.ChildDevices.RemoveRange(devices);
+
+            // 6. Giới hạn ứng dụng
+            var appRules = await _context.AppRules
+                .Where(r => r.ChildUsername != null && r.ChildUsername.ToLower() == norm)
+                .ToListAsync();
+            deletedItems["Quy tắc ứng dụng"] = appRules.Count;
+            _context.AppRules.RemoveRange(appRules);
+
+            // 7. Lịch trình học tập & có mặt
+            var schedules = await _context.StudySchedules
+                .Where(s => s.ChildUsername != null && s.ChildUsername.ToLower() == norm)
+                .ToListAsync();
+            deletedItems["Lịch trình"] = schedules.Count;
+            _context.StudySchedules.RemoveRange(schedules);
+
+            // 8. Vùng an toàn
+            var zones = await _context.SafeZones
+                .Where(z => z.ChildUsername != null && z.ChildUsername.ToLower() == norm)
+                .ToListAsync();
+            deletedItems["Vùng an toàn"] = zones.Count;
+            _context.SafeZones.RemoveRange(zones);
+
+            // 9. Nhật ký cảm xúc
+            var moods = await _context.MoodEntries
+                .Where(m => m.ChildUsername != null && m.ChildUsername.ToLower() == norm)
+                .ToListAsync();
+            deletedItems["Nhật ký cảm xúc"] = moods.Count;
+            _context.MoodEntries.RemoveRange(moods);
+
+            // 10. Bài đăng
+            var posts = await _context.Posts
+                .Where(p => p.Author != null && p.Author.ToLower() == norm)
+                .ToListAsync();
+            deletedItems["Bài đăng"] = posts.Count;
+            _context.Posts.RemoveRange(posts);
+
+            // 11. Cập nhật nhóm gia đình nếu user là Owner
+            var groups = await _context.FamilyGroups
+                .Where(g => g.OwnerId != null && g.OwnerId.ToLower() == norm)
+                .ToListAsync();
+            foreach (var g in groups)
+            {
+                var nextOwners = await _userManager.GetUsersInRoleAsync("Owner");
+                var altOwner = nextOwners.FirstOrDefault(u => !string.Equals(u.UserName, targetName, StringComparison.OrdinalIgnoreCase));
+                g.OwnerId = altOwner?.UserName ?? "hihi";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // 12. Xóa tài khoản Identity (AspNetUsers, AspNetUserRoles...)
+            if (user != null)
+            {
+                await _userManager.DeleteAsync(user);
+                deletedItems["Tài khoản Identity"] = 1;
+            }
+
+            // 13. Xóa các biến bộ nhớ đệm
+            _cache.Remove("all_locations_cache");
+            _cache.Remove($"child_lock_{norm}");
+            _childLockReasonStore.TryRemove(targetName, out _);
+            _childLockReasonStore.TryRemove(norm, out _);
+            _childLockPinStore.TryRemove(targetName, out _);
+            _childLockPinStore.TryRemove(norm, out _);
+            _manualUnlockExemptionStore.TryRemove(norm, out _);
+
+            return Ok(new
+            {
+                status = true,
+                message = $"Đã xóa hoàn toàn tài khoản '{targetName}' và tất cả dữ liệu liên quan khỏi hệ thống!",
+                deletedDetails = deletedItems
             });
         }
 

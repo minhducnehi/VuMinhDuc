@@ -108,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
       username = savedUsername;
     }
     if (username.isEmpty) {
-      username = 'duc';
+      username = 'user';
     }
 
     if (normalized == 'admin') {
