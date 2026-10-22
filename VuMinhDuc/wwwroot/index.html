@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="vuminhduc_2380614671_app">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>vuminhduc_2380614671_app</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script>
+    window.noiseMeter = {
+      audioContext: null,
+      analyser: null,
+      stream: null,
+      currentDb: 40.0,
+      isListening: false,
+      sensitivity: 1.0,
+      bars: [15, 22, 18, 28, 20, 16, 32, 24, 18, 26, 22, 19, 17, 15],
+      async start(sens) {
+        if (sens) this.sensitivity = sens;
+        if (this.isListening && this.audioContext) return true;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          this.stream = stream;
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.audioContext = new AudioCtx();
+          if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+          }
+          const source = this.audioContext.createMediaStreamSource(stream);
+          const analyser = this.audioContext.createAnalyser();
+          analyser.fftSize = 128;
+          analyser.smoothingTimeConstant = 0.35; // Làm dịu dao động xung đột ngột
+          source.connect(analyser);
+          this.analyser = analyser;
+          this.isListening = true;
+
+          const timeData = new Uint8Array(analyser.fftSize);
+          const freqData = new Uint8Array(analyser.frequencyBinCount);
+
+          const loop = () => {
+            if (!this.isListening) return;
+            this.analyser.getByteTimeDomainData(timeData);
+            this.analyser.getByteFrequencyData(freqData);
+
+            let sumSq = 0;
+            for (let i = 0; i < timeData.length; i++) {
+              let norm = (timeData[i] - 128) / 128.0;
+              sumSq += norm * norm;
+            }
+            let rms = Math.sqrt(sumSq / timeData.length);
+
+            // Tính toán dB thực tế từ âm thanh micro:
+            // - Im lặng phòng ngủ: 32 - 38 dB
+            // - Nói chuyện thông thường: 48 - 62 dB
+            // - Nói lớn / tiếng tivi: 65 - 75 dB
+            // - La hét / Va đập mạnh: > 80 dB
+            let db = 35.0;
+            if (rms > 0.0015) {
+              let rawDb = 20 * Math.log10(rms) + 90.0;
+              let sens = this.sensitivity || 1.0;
+              let boosted = 40.0 + (rawDb - 40.0) * sens;
+              db = Math.max(30.0, Math.min(115.0, boosted));
+            }
+            this.currentDb = Math.round(db * 10) / 10;
+
+            // 14 dải phổ âm thanh động
+            let newBars = [];
+            let binStep = Math.max(1, Math.floor(freqData.length / 14));
+            for (let b = 0; b < 14; b++) {
+              let fVal = freqData[b * binStep] || 0;
+              let height = Math.round((fVal / 255.0) * 85 + 10);
+              newBars.push(height);
+            }
+            this.bars = newBars;
+
+            requestAnimationFrame(loop);
+          };
+          requestAnimationFrame(loop);
+          return true;
+        } catch (err) {
+          console.warn("Lỗi truy cập Micro:", err);
+          this.isListening = false;
+          return false;
+        }
+      },
+      setSensitivity(sens) {
+        this.sensitivity = sens;
+      },
+      stop() {
+        this.isListening = false;
+        if (this.stream) {
+          this.stream.getTracks().forEach(t => t.stop());
+          this.stream = null;
+        }
+        if (this.audioContext) {
+          this.audioContext.close();
+          this.audioContext = null;
+        }
+      },
+      getDecibel() {
+        return this.currentDb;
+      },
+      getBars() {
+        return this.bars;
+      },
+      getIsListening() {
+        return this.isListening;
+      }
+    };
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

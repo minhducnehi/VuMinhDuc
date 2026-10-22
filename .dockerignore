@@ -1,0 +1,18 @@
+# Bỏ qua toàn bộ ứng dụng Flutter di động khi build Docker backend
+vuminhduc_mobile_app/
+**/.dart_tool/
+**/build/
+**/android/.gradle/
+
+# Bỏ qua thư mục build và temp của .NET
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+
+# Bỏ qua Git và file tài liệu không cần thiết
+.git/
+.github/
+*.md
+*.log
+*.bat

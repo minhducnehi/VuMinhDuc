@@ -1,0 +1,36 @@
+name: vuminhduc_2380614671_app
+description: "Bai tap Lap trinh Di dong Tuan 6 va Tuan 7 - Vu Minh Duc 2380614671"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  flutter_dotenv: ^6.0.1
+  shared_preferences: ^2.5.6
+  jwt_decoder: ^2.0.1
+  smart_auth: ^3.2.0
+  qr_flutter: ^4.1.0
+  geolocator: ^14.1.2
+  sensors_plus: ^7.1.1
+  mobile_scanner: ^7.4.2
+  local_auth: ^3.0.2
+  url_launcher: ^6.3.3
+  noise_meter: ^6.0.0
+  permission_handler: ^13.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
